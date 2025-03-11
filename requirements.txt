@@ -1,6 +1,9 @@
 kokoro
 genanki
-Flask
-marshmallow
+typer
+rich
+shellingham
+pytest
 requests
 soundfile
+dotenv

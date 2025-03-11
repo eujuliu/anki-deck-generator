@@ -1,13 +1,4 @@
-.PHONY: format lint check
+.PHONY: test
 
-dev:
-	flask run --debug
-
-format:
-	black .
-
-lint:
-	flake8 .
-
-check: 
-	black --check . && flake8 .
+test:
+	python -m pytest tests/
