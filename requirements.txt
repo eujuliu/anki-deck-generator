@@ -1,0 +1,6 @@
+kokoro
+genanki
+Flask
+marshmallow
+requests
+soundfile
