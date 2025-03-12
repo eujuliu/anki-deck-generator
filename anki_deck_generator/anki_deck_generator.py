@@ -3,6 +3,7 @@ import soundfile as sf
 import requests
 import genanki
 import random
+import re
 
 from anki_deck_generator import (
     SUCCESS,
@@ -35,7 +36,7 @@ class AnkiDeckGenerator:
         self.deck_language = deck_language
         self.tts_language = languages[deck_language]
         self.audios_path = f"{Path.home()}/Anki/audios"
-        self.decks_path = f"{Path.home()}/Anki/decks/English_Words"
+        self.decks_path = f"{Path.home()}/Anki/decks"
 
         Path(self.audios_path).mkdir(parents=True, exist_ok=True)
         Path(self.decks_path).mkdir(parents=True, exist_ok=True)
@@ -79,7 +80,7 @@ class AnkiDeckGenerator:
                 if create:
                     path = f"{self.audios_path}/{file_name}.mp3"
                     sf.write(path, audio, 24000)
-                    audios[file_name] = path
+                    audios[file_name] = f"{file_name}.mp3"
                 else:
                     audio_path = io.BytesIO()
                     sf.write(audio_path, audio, 24000, format="mp3")
@@ -90,9 +91,10 @@ class AnkiDeckGenerator:
         except Exception as err:
             return TTS_ERROR, err
 
-    def get_anki_deck(
+    def create_anki_deck(
         self,
         word: str,
+        ipa: str,
         meaning: str,
         example: str,
         sound: str,
@@ -112,6 +114,7 @@ class AnkiDeckGenerator:
                     {"name": "Word"},
                     {"name": "Meaning"},
                     {"name": "Example"},
+                    {"name": "IPA"},
                     {"name": "Sound"},
                     {"name": "Sound_Meaning"},
                     {"name": "Sound_Example"},
@@ -119,14 +122,8 @@ class AnkiDeckGenerator:
                 templates=[
                     {
                         "name": "Template",
-                        "qfmt": """
-                        <div style="font-family:Arial;font-size:70px;color:#FF80DD;">{{Word}}</div><hr>{{Sound}}<hr><div style="font-family:Arial;font-size:70px;color:#FF80DD;"></div>
-                        <style>.card{font-family:Arial;font-size:20px;text-align:center;color:#000;background-color:#f3f3f3;line-height:1.5em}#typeans{text-align:center;max-width:300px}input#typeans{border-radius:9px}.Translation{font-family:Lucida Sans Unicode;color:gray;padding-top:.5em}img{border-radius:19px}div span{max-width:555px;display:inline-block;text-align:left}#typeans span{background-color:#f3f3f3}.typeBad{color:#dc322f;font-weight:700;font-size:23px}.typeMissed,.typePass{color:#268bd2;font-weight:700;font-size:23px}.typeGood{color:#2ed85a;font-weight:700}.smartstep{position:absolute;top:7px;right:27px;background:url(_sse_vk.png) top right no-repeat;display:block;width:50px;height:50px}.small{color:#27AE60;font-size:.7em}.Deck{position:absolute;top:7px;left:0;width:100%}#Deck{font-size:8pt;vertical-align:top;line-height:10pt}</style>
-                        """,
-                        "afmt": """
-                        <div style="font-family:Arial;color:#FF80DD;">{{Word}}</div><hr><div style="font-family:Arial;color:#00aaaa;text-align:left;">Meaning: {{Meaning}} {{Sound_Meaning}}</div><hr><div style="font-family:Arial;color:#9CFFFA;text-align:left;">Example: {{Example}} {{Sound_Example}}</div>
-                        <style>.card{font-family:Arial;font-size:20px;text-align:center;color:#000;background-color:#f3f3f3;line-height:1.5em}#typeans{text-align:center;max-width:300px}input#typeans{border-radius:9px}.Translation{font-family:Lucida Sans Unicode;color:gray;padding-top:.5em}img{border-radius:19px}div span{max-width:555px;display:inline-block;text-align:left}#typeans span{background-color:#f3f3f3}.typeBad{color:#dc322f;font-weight:700;font-size:23px}.typeMissed,.typePass{color:#268bd2;font-weight:700;font-size:23px}.typeGood{color:#2ed85a;font-weight:700}.smartstep{position:absolute;top:7px;right:27px;background:url(_sse_vk.png) top right no-repeat;display:block;width:50px;height:50px}.small{color:#27AE60;font-size:.7em}.Deck{position:absolute;top:7px;left:0;width:100%}#Deck{font-size:8pt;vertical-align:top;line-height:10pt}</style>
-                        """,
+                        "qfmt": '<div style="display:flex;justify-content:center;align-items:center;flex-direction:column;height:90vh"><div style="font-family:Arial;font-size:70px;color:#ff80dd">{{Word}}</div><br>{{Sound}}<br><div style="font-family:Arial;font-size:70px;color:#ff80dd">{{IPA}}</div></div>',
+                        "afmt": '<div style="display:flex;justify-content:center;align-items:center;flex-direction:column;height:90vh"><div style="font-family:Arial;color:#ff80dd;font-size:30px">{{Word}}</div><br><div style="font-family:Arial;color:#0aa;font-size:25px">{{Sound_Meaning}} Meaning: {{Meaning}} </div><br><br><div style="font-family:Arial;color:#9cfffa;font-size:25px">{{Sound_Example}} Example: {{Example}} </div></div>',
                     }
                 ],
             )
@@ -137,6 +134,7 @@ class AnkiDeckGenerator:
                     word,
                     meaning,
                     example,
+                    ipa,
                     f"[sound:{sound}]",
                     f"[sound:{sound_meaning}]",
                     f"[sound:{sound_example}]",
@@ -156,8 +154,10 @@ class AnkiDeckGenerator:
             ]
 
             package.write_to_file(f"{self.decks_path}/{word}.apkg")
+
+            return SUCCESS, None
         except Exception as err:
-            return WORD_EXISTS_ERROR, err
+            return SERVER_ERROR, err
 
     def _fetch(self, url: str, timeout=None, headers: dict = {}):
         try:
@@ -186,11 +186,15 @@ class AnkiDeckGenerator:
                             for sense in sseq:
                                 if "dt" in sense[1]:
                                     for dt in sense[1]["dt"]:
-                                        if dt[0] == "text":
-                                            meanings.append(dt[1])
+                                        if dt[0] == "text":  # meaning
+                                            meaning = re.sub(r"\{.*?\}", "", dt[1])
+                                            meanings.append(meaning)
                                         if dt[0] == "vis":
-                                            for vis in dt[1]:
-                                                examples.append(vis["t"])
+                                            for vis in dt[1]:  # example
+                                                example = re.sub(
+                                                    r"\{.*?\}", "", vis["t"]
+                                                )
+                                                examples.append(example)
 
         return ipas, meanings, examples
 

@@ -1,5 +1,6 @@
 import typer
 import time
+import os
 
 from rich.console import Console
 from rich.panel import Panel
@@ -9,10 +10,12 @@ from pathlib import Path
 from typing import Tuple
 from typing_extensions import Annotated
 
-
 app = typer.Typer()
-generator = anki_deck_generator.AnkiDeckGenerator("123", "English_Words", "en")
 console = Console()
+
+deck_name = "English_Words"
+language = "en"
+generator = anki_deck_generator.AnkiDeckGenerator("1", deck_name, language)
 
 
 @app.command()
@@ -78,6 +81,69 @@ def text_to_speech(
 
     console.print(
         Panel(result_text, title="🎤 TTS Result", expand=False, border_style="blue")
+    )
+
+    show_time()
+
+
+@app.command("anki")
+def generate_anki_deck(
+    word: Annotated[
+        str,
+        typer.Option(
+            ...,
+            "--word",
+            "-w",
+            help="The word to create a anki card",
+            prompt="Enter the word to create a new anki card",
+        ),
+    ],
+) -> None:
+    measure_time()
+    status, dict_data = generator.dictionary(word)
+
+    if status in ERRORS:
+        typer.secho(f"{dict_data}", fg=typer.colors.RED)
+        raise typer.Exit(1)
+
+    dict_text = f"[bold green]Word:[/bold green] {dict_data['word']}\n"
+    dict_text += f"[bold cyan]Meaning:[/bold cyan] {dict_data['meaning']}\n"
+    dict_text += f"[bold yellow]Example:[/bold yellow] {dict_data['example']}\n"
+    dict_text += f"[bold purple]Ipa:[/bold purple] {dict_data['ipa']}"
+
+    console.print(
+        Panel(
+            dict_text, title="📖 Dictionary Result", expand=False, border_style="blue"
+        )
+    )
+
+    word = dict_data["word"]
+    meaning = dict_data["meaning"]
+    example = dict_data["example"]
+    ipa = dict_data["ipa"]
+
+    status, tts_data = generator.text_to_speech((word, meaning, example), True)
+
+    if status in ERRORS:
+        typer.secho(f"{tts_data}", fg=typer.colors.RED)
+        raise typer.Exit(1)
+
+    status, anki_data = generator.create_anki_deck(
+        word, ipa, meaning, example, *tts_data.values()
+    )
+
+    if status in ERRORS:
+        typer.secho(f"{anki_data}", fg=typer.colors.RED)
+        raise typer.Exit(1)
+
+    for audio in tts_data.values():
+        os.remove(f"{Path.home()}/Anki/audios/{audio}")
+
+    result_text = "[bold green]Anki deck created in this path:[/bold green]\n\n"
+    result_text += f"{Path.home()}/Anki/decks/{word}.apkg"
+
+    console.print(
+        Panel(result_text, title="🎤 Anki Result", expand=False, border_style="blue")
     )
 
     show_time()
