@@ -1,7 +1,4 @@
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
+from dotenv import dotenv_values
 
 __app_name__ = "Anki Deck Generator"
 __version__ = "0.1.0"
@@ -15,9 +12,7 @@ __version__ = "0.1.0"
     FETCH_ERROR,
 ) = range(6)
 
-ENVS = {
-    "MERRIAM_WEBSTER_DICTIONARY_API": os.getenv("MERRIAM_WEBSTER_DICTIONARY_API"),
-}
+ENVS = {**dotenv_values(".env")}
 
 ERRORS = {
     WORD_EXISTS_ERROR: "CONFLICT_ERROR: word already exists",

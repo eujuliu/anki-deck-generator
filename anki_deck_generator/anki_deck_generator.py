@@ -28,12 +28,12 @@ class AnkiDeckGenerator:
     decks_path: str
 
     def __init__(self, id: str, deck_name: str, deck_language: str):
-        language = {"en": "a", "pt": "p", "es": "e"}
+        languages = {"en": "a", "pt": "p", "es": "e"}
 
         self.id = id
         self.deck_name = deck_name
         self.deck_language = deck_language
-        self.tts_language = language[deck_language]
+        self.tts_language = languages[deck_language]
         self.audios_path = f"{Path.home()}/Anki/audios"
         self.decks_path = f"{Path.home()}/Anki/decks/English_Words"
 
@@ -42,7 +42,7 @@ class AnkiDeckGenerator:
 
     def dictionary(self, word: str):
         status, data = self._fetch(
-            f"https://api.dictionaryapi.dev/api/v2/entries/{self.deck_language}/{word}"
+            f"https://www.dictionaryapi.com/api/v3/references/learners/json/{word}?key={ENVS["MERRIAM_WEBSTER_DICTIONARY_API"]}"
         )
 
         if status in ERRORS:
@@ -50,12 +50,13 @@ class AnkiDeckGenerator:
                 return WORD_NOT_FOUND_ERROR, ERRORS[WORD_NOT_FOUND_ERROR]
             return SERVER_ERROR, data
 
+        ipas, meanings, examples = self._format_merriam_webster_json(data)
+
         result = {
             "word": word,
-            "meaning": self._format_meaning(
-                data[0]["meanings"][0]["definitions"][0]["definition"]
-            ),
-            "example": self._get_examples(data[0])[0],
+            "meaning": meanings[0],
+            "example": examples[0],
+            "ipa": ipas[0],
         }
 
         return SUCCESS, result
@@ -165,20 +166,31 @@ class AnkiDeckGenerator:
         except requests.exceptions.RequestException as err:
             return FETCH_ERROR, err
 
-    def _format_meaning(self, meaning: str):
-        if meaning.find(";"):
-            return meaning.split(";")[0] + "."
-        return meaning
-
-    def _get_examples(self, data: dict):
+    def _format_merriam_webster_json(self, data: list):
         examples = []
-        for meaning in data["meanings"]:
-            for definition in meaning["definitions"]:
-                example = definition.get("example", None)
-                if example:
-                    examples.append(definition["example"])
+        meanings = []
+        ipas = []
 
-        return examples
+        for obj in data:
+            if "hwi" in obj:
+                if "prs" in obj["hwi"]:
+                    for prs in obj["hwi"]["prs"]:
+                        ipas.append(prs["ipa"])
+
+            if "def" in obj:
+                for definition in obj["def"]:
+                    if "sseq" in definition:
+                        for sseq in definition["sseq"]:
+                            for sense in sseq:
+                                if "dt" in sense[1]:
+                                    for dt in sense[1]["dt"]:
+                                        if dt[0] == "text":
+                                            meanings.append(dt[1])
+                                        if dt[0] == "vis":
+                                            for vis in dt[1]:
+                                                examples.append(vis["t"])
+
+        return ipas, meanings, examples
 
     def _forma_string(string: str):
         return string.replace(" ", "_").lower()

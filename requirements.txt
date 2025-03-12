@@ -6,4 +6,4 @@ shellingham
 pytest
 requests
 soundfile
-dotenv
+python-dotenv
