@@ -68,11 +68,13 @@ class AnkiDeckGenerator:
             for word in words:
                 text += f"{word}|"
 
-            pipeline = KPipeline(lang_code=self.tts_language)
+            pipeline = KPipeline(
+                lang_code=self.tts_language, repo_id="hexgrad/Kokoro-82M"
+            )
             generator = pipeline(text, voice="af_heart", speed=1, split_pattern=r"\|")
 
             for i, (gs, ps, audio) in enumerate(generator):
-                file_name = self._forma_string(gs)
+                file_name = self._format_string(gs)
 
                 if create:
                     path = f"{self.audios_path}/{file_name}.mp3"
@@ -192,5 +194,5 @@ class AnkiDeckGenerator:
 
         return ipas, meanings, examples
 
-    def _forma_string(string: str):
+    def _format_string(self, string: str):
         return string.replace(" ", "_").lower()
