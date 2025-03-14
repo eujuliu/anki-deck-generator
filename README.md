@@ -4,6 +4,7 @@
 
 An application to generate Anki decks from a dictionary and text-to-speech data. This tool allows users to create Anki cards with words, meanings, examples, and IPA pronunciations, and convert text to speech for audio files.
 
+
 <p align="center">
 <a href="https://github.com/eujuliu/anki-deck-generator/issues">Have a question?</a>
   ·
@@ -18,6 +19,8 @@ An application to generate Anki decks from a dictionary and text-to-speech data.
   <img src="https://img.shields.io/github/stars/eujuliu/anki-deck-generator" alt="Stars">
   <img src="https://img.shields.io/github/license/eujuliu/anki-deck-generator" alt="License">
 </p>
+
+![Image](https://github.com/user-attachments/assets/b3c17053-a1e8-4551-8e89-3011be4a74c7) ![Image](https://github.com/user-attachments/assets/094d61c3-ef0e-4758-970f-577fbbb673cf)
 
 ## Table of Contents
   - [Technologies](#technologies)
