@@ -45,7 +45,7 @@ For run this project, you will need the following things:
 And you need to download the project in your computer.
 
 ### Installation
-After fill all the [`prerequisites`](#prerequisites) you can create a `.venv` folder for install local installation of the the required packages.
+After fill all the [`prerequisites`](#prerequisites) you can create a `.venv` folder for local installation of the required packages.
 
 For install the `required` packages for the project you need to run:
 
@@ -53,12 +53,11 @@ For install the `required` packages for the project you need to run:
 pip install -r requirements.txt
 ```
 
-if you want to install in your machine for use any time you need to run this command in the project folder:
+If you want to install in your machine for use any time, you need to run this command in the project folder:
 
 ```bash
 pip install --editable .
 ```
-
 
 ### Usage
 
