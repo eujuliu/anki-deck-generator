@@ -20,8 +20,6 @@ An application to generate Anki decks from a dictionary and text-to-speech data.
 </p>
 
 ## Table of Contents
-- [🗃️ Anki Deck Generator](#️-anki-deck-generator)
-  - [Table of Contents](#table-of-contents)
   - [Technologies](#technologies)
   - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
