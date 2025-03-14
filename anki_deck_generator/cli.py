@@ -1,11 +1,13 @@
 import typer
 import time
-import os
 
 from rich.console import Console
 from rich.panel import Panel
 from typing import Optional
-from anki_deck_generator import anki_deck_generator, ERRORS, __app_name__, __version__
+
+from anki_deck_generator import ERRORS, __app_name__, __version__
+from anki_deck_generator.generator import Generator
+from anki_deck_generator.database import Database
 from pathlib import Path
 from typing import Tuple
 from typing_extensions import Annotated
@@ -13,9 +15,12 @@ from typing_extensions import Annotated
 app = typer.Typer()
 console = Console()
 
-deck_name = "English_Words"
-language = "en"
-generator = anki_deck_generator.AnkiDeckGenerator("1", deck_name, language)
+
+def init():
+    global generator
+    global database
+    generator = Generator("English_Words", "en")
+    database = Database(f"{typer.get_app_dir(__app_name__)}/database.json")
 
 
 @app.command()
@@ -99,12 +104,20 @@ def generate_anki_deck(
         ),
     ],
 ) -> None:
+    data = database.read(word)
+
+    if data is not None or (data is dict and data.get("status") == "created"):
+        typer.secho("ERROR: This word is already added", fg=typer.colors.RED)
+        raise typer.Exit(1)
+
     measure_time()
     status, dict_data = generator.dictionary(word)
 
     if status in ERRORS:
         typer.secho(f"{dict_data}", fg=typer.colors.RED)
         raise typer.Exit(1)
+
+    data = database.write(word, {"status": "creating"})
 
     dict_text = f"[bold green]Word:[/bold green] {dict_data['word']}\n"
     dict_text += f"[bold cyan]Meaning:[/bold cyan] {dict_data['meaning']}\n"
@@ -113,7 +126,10 @@ def generate_anki_deck(
 
     console.print(
         Panel(
-            dict_text, title="📖 Dictionary Result", expand=False, border_style="blue"
+            dict_text,
+            title="📖 Dictionary Result",
+            expand=False,
+            border_style="blue",
         )
     )
 
@@ -126,6 +142,8 @@ def generate_anki_deck(
 
     if status in ERRORS:
         typer.secho(f"{tts_data}", fg=typer.colors.RED)
+        database.write(word, {"status": "error", "error": tts_data})
+        remove_audio_files()
         raise typer.Exit(1)
 
     status, anki_data = generator.create_anki_deck(
@@ -134,10 +152,9 @@ def generate_anki_deck(
 
     if status in ERRORS:
         typer.secho(f"{anki_data}", fg=typer.colors.RED)
+        database.write(word, {"status": "error", "error": anki_data})
+        remove_audio_files()
         raise typer.Exit(1)
-
-    for audio in tts_data.values():
-        os.remove(f"{Path.home()}/Anki/audios/{audio}")
 
     result_text = "[bold green]Anki deck created in this path:[/bold green]\n\n"
     result_text += f"{Path.home()}/Anki/decks/{word}.apkg"
@@ -146,6 +163,8 @@ def generate_anki_deck(
         Panel(result_text, title="🎤 Anki Result", expand=False, border_style="blue")
     )
 
+    database.write(word, {"status": "created"})
+    remove_audio_files()
     show_time()
 
 
@@ -165,8 +184,16 @@ def main(
         callback=_version_callback,
         is_eager=True,
     ),
-) -> None:
+):
+    init()
+
     return
+
+
+def remove_audio_files():
+    audios_path = Path(f"{Path.home()}/Anki/audios")
+    for audio in audios_path.iterdir():
+        audio.unlink()
 
 
 def measure_time():

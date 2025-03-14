@@ -9,7 +9,7 @@ from anki_deck_generator import (
     SUCCESS,
     ERRORS,
     WORD_EXISTS_ERROR,
-    SERVER_ERROR,
+    APP_ERROR,
     WORD_NOT_FOUND_ERROR,
     TTS_ERROR,
     FETCH_ERROR,
@@ -20,21 +20,18 @@ from kokoro import KPipeline
 from pathlib import Path
 
 
-class AnkiDeckGenerator:
-    id: str
+class Generator:
     deck_name: str
     deck_language: str
     tts_language: str
     audios_path: str
     decks_path: str
 
-    def __init__(self, id: str, deck_name: str, deck_language: str):
-        languages = {"en": "a", "pt": "p", "es": "e"}
-
-        self.id = id
+    def __init__(self, deck_name: str, deck_language: str):
+        tts_languages = {"en": "a", "pt": "p", "es": "e"}
         self.deck_name = deck_name
         self.deck_language = deck_language
-        self.tts_language = languages[deck_language]
+        self.tts_language = tts_languages[deck_language]
         self.audios_path = f"{Path.home()}/Anki/audios"
         self.decks_path = f"{Path.home()}/Anki/decks"
 
@@ -47,17 +44,15 @@ class AnkiDeckGenerator:
         )
 
         if status in ERRORS:
-            if data.response.status_code == 404:
-                return WORD_NOT_FOUND_ERROR, ERRORS[WORD_NOT_FOUND_ERROR]
-            return SERVER_ERROR, data
+            return status, data
 
-        ipas, meanings, examples = self._format_merriam_webster_json(data)
+        ipa, meaning, example = self._format_merriam_webster_json(data)
 
         result = {
             "word": word,
-            "meaning": meanings[0],
-            "example": examples[0],
-            "ipa": ipas[0],
+            "meaning": meaning,
+            "example": example,
+            "ipa": ipa,
         }
 
         return SUCCESS, result
@@ -103,9 +98,6 @@ class AnkiDeckGenerator:
     ):
         try:
             id = random.randrange(1 << 30, 1 << 31)
-            sound = self._format_string(sound)
-            sound_meaning = self._format_string(sound_meaning)
-            sound_example = self._format_string(sound_example)
 
             model = genanki.Model(
                 id,
@@ -157,27 +149,33 @@ class AnkiDeckGenerator:
 
             return SUCCESS, None
         except Exception as err:
-            return SERVER_ERROR, err
+            return APP_ERROR, err
 
     def _fetch(self, url: str, timeout=None, headers: dict = {}):
         try:
             response = requests.get(url, timeout=timeout, headers=headers)
             response.raise_for_status()
 
+            if response.json() == []:
+                return WORD_NOT_FOUND_ERROR, ERRORS[WORD_NOT_FOUND_ERROR]
+
             return SUCCESS, response.json()
         except requests.exceptions.RequestException as err:
             return FETCH_ERROR, err
 
     def _format_merriam_webster_json(self, data: list):
-        examples = []
-        meanings = []
-        ipas = []
+        example = None
+        meaning = None
+        ipa = None
 
         for obj in data:
-            if "hwi" in obj:
+            if "hwi" in obj and ipa is None:
                 if "prs" in obj["hwi"]:
                     for prs in obj["hwi"]["prs"]:
-                        ipas.append(prs["ipa"])
+                        ipa = prs["ipa"]
+
+                if "altprs" in obj["hwi"]:
+                    ipa = obj["hwi"]["altprs"][0]["ipa"]
 
             if "def" in obj:
                 for definition in obj["def"]:
@@ -186,17 +184,32 @@ class AnkiDeckGenerator:
                             for sense in sseq:
                                 if "dt" in sense[1]:
                                     for dt in sense[1]["dt"]:
-                                        if dt[0] == "text":  # meaning
-                                            meaning = re.sub(r"\{.*?\}", "", dt[1])
-                                            meanings.append(meaning)
-                                        if dt[0] == "vis":
-                                            for vis in dt[1]:  # example
-                                                example = re.sub(
-                                                    r"\{.*?\}", "", vis["t"]
-                                                )
-                                                examples.append(example)
+                                        if (
+                                            dt[0] == "text" and meaning is None
+                                        ):  # meaning
+                                            meaning = re.sub(
+                                                r"\{.*?\}", "", dt[1]
+                                            ).strip()
 
-        return ipas, meanings, examples
+                                            if meaning == "":
+                                                meaning = obj["shortdef"][0]
+
+                                        if example is None:  # example
+                                            if dt[0] == "vis":
+                                                for vis in dt[1]:
+                                                    example = re.sub(
+                                                        r"\{.*?\}", "", vis["t"]
+                                                    )
+                                            if dt[0] == "uns":
+                                                for uns in dt[1][0]:
+                                                    if uns[0] == "vis":
+                                                        example = re.sub(
+                                                            r"\{.*?\}",
+                                                            "",
+                                                            uns[1][0]["t"],
+                                                        )
+
+        return ipa, meaning, example
 
     def _format_string(self, string: str):
-        return string.replace(" ", "_").lower()
+        return re.sub(r"[^a-zA-Z0-9_]", "", string.replace(" ", "_")).lower()
