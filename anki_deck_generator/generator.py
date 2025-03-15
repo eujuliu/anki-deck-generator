@@ -97,9 +97,10 @@ class Generator:
         sound_example: str,
     ):
         try:
+            id = random.randrange(1 << 30, 1 << 31)
             model = genanki.Model(
-                "EDM 1",
-                "Model",
+                id,
+                "EDM",
                 fields=[
                     {"name": "Word"},
                     {"name": "Meaning"},
