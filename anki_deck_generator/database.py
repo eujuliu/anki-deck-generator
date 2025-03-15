@@ -12,6 +12,10 @@ class Database:
         self.data = self._load()
 
     def _load(self):
+        if not self.location.exists():
+            with open(self.location, "w", encoding="UTF-8") as file:
+                json.dump({}, file)
+
         with open(self.location, "r") as file:
             return json.load(file)
 
