@@ -1,3 +1,4 @@
+import typer
 from dotenv import dotenv_values
 
 __app_name__ = "Anki Deck Generator"
@@ -13,7 +14,9 @@ __version__ = "0.1.0"
     PATH_IS_NOT_JSON_ERROR,
 ) = range(7)
 
-ENVS = {**dotenv_values(".env")}
+env_dir = f"{typer.get_app_dir(__app_name__)}/.env"
+
+ENVS = {**dotenv_values(env_dir)}
 
 ERRORS = {
     WORD_EXISTS_ERROR: "CONFLICT_ERROR: word already exists",
