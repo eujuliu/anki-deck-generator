@@ -9,6 +9,10 @@ def read_requirements():
 setup(
     name="anki-deck-generator",
     version="0.1.0",
+    license="GPL-2.0",
+    author="Julio Martins",
+    author_email="contact.juliomartins@gmail.com",
+    description="This tool allows users to create Anki cards with words, meanings, examples, and IPA pronunciations, and convert text to speech for audio files.",
     packages=find_packages(),
     install_requires=read_requirements(),
     include_package_data=True,

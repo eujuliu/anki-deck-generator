@@ -44,8 +44,9 @@ This project was built with `Python` and `Typer`, a library for creating command
 For run this project, you will need the following things:
 
 - [`Python 3.12.9`](https://www.python.org/)
+- [`Merriam Webster API Key`](https://dictionaryapi.com/)
 
-And you need to download the project in your computer.
+You need to create `.env` file into the project folder with the following keys: `MERRIAM_WEBSTER_DICTIONARY_API`
 
 ### Installation
 After fill all the [`prerequisites`](#prerequisites) you can create a `.venv` folder for local installation of the required packages.
@@ -59,7 +60,7 @@ pip install -r requirements.txt
 If you want to install in your machine for use any time, you need to run this command in the project folder:
 
 ```bash
-pip install --editable .
+pip install .
 ```
 
 ### Usage
