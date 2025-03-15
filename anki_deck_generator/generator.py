@@ -97,9 +97,9 @@ class Generator:
         sound_example: str,
     ):
         try:
-            id = random.randrange(1 << 30, 1 << 31)
+
             model = genanki.Model(
-                id,
+                123,
                 "EDM",
                 fields=[
                     {"name": "Word"},
@@ -132,7 +132,8 @@ class Generator:
                 ],
             )
 
-            deck = genanki.Deck(random.randrange(1 << 30, 1 << 31), self.deck_name)
+            model_id = random.randrange(1 << 30, 1 << 31)
+            deck = genanki.Deck(model_id, self.deck_name)
 
             deck.add_note(note)
             deck.add_model(model)
