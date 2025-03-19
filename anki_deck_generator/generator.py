@@ -33,7 +33,7 @@ class Generator:
         self.deck_language = deck_language
         self.tts_language = tts_languages[deck_language]
         self.audios_path = f"{Path.home()}/Anki/audios"
-        self.decks_path = f"{Path.home()}/Anki/decks"
+        self.decks_path = f"{Path.home()}/Anki/decks/English Words"
 
         Path(self.audios_path).mkdir(parents=True, exist_ok=True)
         Path(self.decks_path).mkdir(parents=True, exist_ok=True)
@@ -145,9 +145,13 @@ class Generator:
                 f"{self.audios_path}/{sound_example}",
             ]
 
-            package.write_to_file(f"{self.decks_path}/{word}.apkg")
+            path = f"{self.decks_path}/{word}.apkg"
 
-            return SUCCESS, None
+            package.write_to_file(path)
+
+            result = {"path": path}
+
+            return SUCCESS, result
         except Exception as err:
             return APP_ERROR, err
 

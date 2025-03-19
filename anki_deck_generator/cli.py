@@ -103,19 +103,55 @@ def generate_anki_deck(
             prompt="Enter the word to create a new anki card",
         ),
     ],
+    meaning: Optional[str] = typer.Option(
+        None,
+        "--meaning",
+        "-m",
+        help="The meaning of the word",
+    ),
+    example: Optional[str] = typer.Option(
+        None,
+        "--example",
+        "-e",
+        help="The example of the word",
+    ),
+    ipa: Optional[str] = typer.Option(
+        None,
+        "--ipa",
+        "-i",
+        help="The ipa of the word",
+    ),
+    override: Optional[bool] = typer.Option(
+        None,
+        "--override",
+        "-o",
+        help="Override the word if it already exists",
+    ),
 ) -> None:
     data = database.read(word)
+    already_exists = data is not None and data.get("status", None) == "created"
 
-    if data is not None or (data is dict and data.get("status") == "created"):
+    if already_exists and not override:
         typer.secho("ERROR: This word is already added", fg=typer.colors.RED)
         raise typer.Exit(1)
 
-    measure_time()
-    status, dict_data = generator.dictionary(word)
-
-    if status in ERRORS:
-        typer.secho(f"{dict_data}", fg=typer.colors.RED)
+    if any([meaning, example, ipa]) and not all([meaning, example, ipa]):
+        typer.secho(
+            "ERROR: You need to provide all the arguments (--meaning, --example, --ipa) or none of them",
+            fg=typer.colors.RED,
+        )
         raise typer.Exit(1)
+
+    measure_time()
+
+    if not all([meaning, example, ipa]):
+        status, dict_data = generator.dictionary(word)
+
+        if status in ERRORS:
+            typer.secho(f"{dict_data}", fg=typer.colors.RED)
+            raise typer.Exit(1)
+    else:
+        dict_data = {"word": word, "meaning": meaning, "example": example, "ipa": ipa}
 
     data = database.write(word, {"status": "creating"})
 
@@ -138,7 +174,7 @@ def generate_anki_deck(
     example = dict_data["example"]
     ipa = dict_data["ipa"]
 
-    status, tts_data = generator.text_to_speech((word, meaning, example), True)
+    status, tts_data = generator.text_to_speech((word, meaning, example), create=True)
 
     if status in ERRORS:
         typer.secho(f"{tts_data}", fg=typer.colors.RED)
@@ -157,7 +193,7 @@ def generate_anki_deck(
         raise typer.Exit(1)
 
     result_text = "[bold green]Anki deck created in this path:[/bold green]\n\n"
-    result_text += f"{Path.home()}/Anki/decks/{word}.apkg"
+    result_text += anki_data["path"]
 
     console.print(
         Panel(result_text, title="🎤 Anki Result", expand=False, border_style="blue")
