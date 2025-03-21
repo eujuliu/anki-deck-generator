@@ -11,8 +11,7 @@ __version__ = "0.1.0"
     WORD_NOT_FOUND_ERROR,
     TTS_ERROR,
     FETCH_ERROR,
-    PATH_IS_NOT_JSON_ERROR,
-) = range(7)
+) = range(6)
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(base_dir, ".env")
@@ -25,5 +24,4 @@ ERRORS = {
     WORD_NOT_FOUND_ERROR: "SEARCH_ERROR: word not found",
     TTS_ERROR: "TTS_ERROR: text-to-speech error",
     FETCH_ERROR: "FETCH_ERROR: error fetching data",
-    PATH_IS_NOT_JSON_ERROR: "JSON_ERROR: path is not a json file",
 }

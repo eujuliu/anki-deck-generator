@@ -19,7 +19,7 @@ console = Console()
 def init():
     global generator
     global database
-    generator = Generator("English_Words", "en")
+    generator = Generator("English Words", "en")
     database = Database(f"{typer.get_app_dir(__app_name__)}/database.json")
 
 
@@ -129,11 +129,6 @@ def generate_anki_deck(
     ),
 ) -> None:
     data = database.read(word)
-    already_exists = data is not None and data.get("status", None) == "created"
-
-    if already_exists and not override:
-        typer.secho("ERROR: This word is already added", fg=typer.colors.RED)
-        raise typer.Exit(1)
 
     if any([meaning, example, ipa]) and not all([meaning, example, ipa]):
         typer.secho(
@@ -149,11 +144,10 @@ def generate_anki_deck(
 
         if status in ERRORS:
             typer.secho(f"{dict_data}", fg=typer.colors.RED)
+            database.write(word, {"status": "error", "error": str(dict_data)})
             raise typer.Exit(1)
     else:
         dict_data = {"word": word, "meaning": meaning, "example": example, "ipa": ipa}
-
-    data = database.write(word, {"status": "creating"})
 
     dict_text = f"[bold green]Word:[/bold green] {dict_data['word']}\n"
     dict_text += f"[bold cyan]Meaning:[/bold cyan] {dict_data['meaning']}\n"
@@ -169,6 +163,15 @@ def generate_anki_deck(
         )
     )
 
+    already_exists = data is not None and data.get("status", None) == "created"
+
+    if already_exists and not override:
+        typer.secho("ERROR: This word is already added", fg=typer.colors.RED)
+        show_time()
+        raise typer.Exit(1)
+
+    data = database.write(word, {"status": "creating"})
+
     word = dict_data["word"]
     meaning = dict_data["meaning"]
     example = dict_data["example"]
@@ -178,7 +181,7 @@ def generate_anki_deck(
 
     if status in ERRORS:
         typer.secho(f"{tts_data}", fg=typer.colors.RED)
-        database.write(word, {"status": "error", "error": tts_data})
+        database.write(word, {"status": "error", "error": str(tts_data)})
         remove_audio_files()
         raise typer.Exit(1)
 
@@ -188,7 +191,7 @@ def generate_anki_deck(
 
     if status in ERRORS:
         typer.secho(f"{anki_data}", fg=typer.colors.RED)
-        database.write(word, {"status": "error", "error": anki_data})
+        database.write(word, {"status": "error", "error": str(anki_data)})
         remove_audio_files()
         raise typer.Exit(1)
 

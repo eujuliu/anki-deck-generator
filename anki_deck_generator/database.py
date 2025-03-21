@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from anki_deck_generator import PATH_IS_NOT_JSON_ERROR, ERRORS
 
 
 class Database:
