@@ -45,22 +45,17 @@ For run this project, you will need the following things:
 
 - [`Python 3.12.9`](https://www.python.org/)
 - [`Merriam Webster API Key`](https://dictionaryapi.com/)
-
-You need to create `.env` file into the project folder with the following keys: `MERRIAM_WEBSTER_DICTIONARY_API`
+- [`make`]()
 
 ### Installation
-After fill all the [`prerequisites`](#prerequisites) you can create a `.venv` folder for local installation of the required packages.
-
-For install the `required` packages for the project you need to run:
+For install the Anki Deck Generator you need to run the following commands:
 
 ```bash
-pip install -r requirements.txt
+cd anki-deck-generator
 ```
 
-If you want to install in your machine for use any time, you need to run this command in the project folder:
-
 ```bash
-pip install .
+make install
 ```
 
 ### Usage

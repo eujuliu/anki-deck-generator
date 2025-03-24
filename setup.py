@@ -16,7 +16,7 @@ setup(
     packages=find_packages(),
     install_requires=read_requirements(),
     include_package_data=True,
-    package_data={"": [".env"]},
+    package_data={"anki_deck_generator": [".env"]},
     entry_points={
         "console_scripts": [
             "anki_deck=anki_deck_generator.__main__:main",

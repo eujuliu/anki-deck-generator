@@ -128,16 +128,17 @@ def generate_anki_deck(
         help="Override the word if it already exists",
     ),
 ) -> None:
+    measure_time()
+
+    word = word.lower().strip()
     data = database.read(word)
 
-    if any([meaning, example, ipa]) and not all([meaning, example, ipa]):
-        typer.secho(
-            "ERROR: You need to provide all the arguments (--meaning, --example, --ipa) or none of them",
-            fg=typer.colors.RED,
-        )
-        raise typer.Exit(1)
+    exists = data is not None and data.get("status", None) == "created"
 
-    measure_time()
+    if exists and data.get("result", None):
+        meaning = data["result"]["meaning"]
+        example = data["result"]["example"]
+        ipa = data["result"]["ipa"]
 
     if not all([meaning, example, ipa]):
         status, dict_data = generator.dictionary(word)
@@ -146,13 +147,26 @@ def generate_anki_deck(
             typer.secho(f"{dict_data}", fg=typer.colors.RED)
             database.write(word, {"status": "error", "error": str(dict_data)})
             raise typer.Exit(1)
-    else:
-        dict_data = {"word": word, "meaning": meaning, "example": example, "ipa": ipa}
 
-    dict_text = f"[bold green]Word:[/bold green] {dict_data['word']}\n"
-    dict_text += f"[bold cyan]Meaning:[/bold cyan] {dict_data['meaning']}\n"
-    dict_text += f"[bold yellow]Example:[/bold yellow] {dict_data['example']}\n"
-    dict_text += f"[bold purple]Ipa:[/bold purple] {dict_data['ipa']}"
+        if not meaning:
+            meaning = dict_data["meaning"]
+        if not example:
+            example = dict_data["example"]
+        if not ipa:
+            ipa = dict_data["ipa"]
+
+        data = database.write(
+            word,
+            {
+                **(data if data else {}),
+                "result": {"meaning": meaning, "example": example, "ipa": ipa},
+            },
+        )
+
+    dict_text = f"[bold green]Word:[/bold green] {word}\n"
+    dict_text += f"[bold cyan]Meaning:[/bold cyan] {meaning}\n"
+    dict_text += f"[bold yellow]Example:[/bold yellow] {example}\n"
+    dict_text += f"[bold purple]Ipa:[/bold purple] {ipa}"
 
     console.print(
         Panel(
@@ -163,19 +177,15 @@ def generate_anki_deck(
         )
     )
 
-    already_exists = data is not None and data.get("status", None) == "created"
-
-    if already_exists and not override:
-        typer.secho("ERROR: This word is already added", fg=typer.colors.RED)
+    if exists and not override:
+        typer.secho(
+            "ERROR: This word is already added (use --override for override)",
+            fg=typer.colors.RED,
+        )
         show_time()
         raise typer.Exit(1)
 
-    data = database.write(word, {"status": "creating"})
-
-    word = dict_data["word"]
-    meaning = dict_data["meaning"]
-    example = dict_data["example"]
-    ipa = dict_data["ipa"]
+    data = database.write(word, {**data, "status": "creating"})
 
     status, tts_data = generator.text_to_speech((word, meaning, example), create=True)
 
@@ -202,7 +212,17 @@ def generate_anki_deck(
         Panel(result_text, title="🎤 Anki Result", expand=False, border_style="blue")
     )
 
-    database.write(word, {"status": "created"})
+    database.write(
+        word,
+        {
+            "status": "created",
+            "result": {
+                "meaning": meaning,
+                "example": example,
+                "ipa": ipa,
+            },
+        },
+    )
     remove_audio_files()
     show_time()
 

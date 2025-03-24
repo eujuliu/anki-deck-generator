@@ -1,5 +1,4 @@
-import os
-from dotenv import dotenv_values
+from dotenv import dotenv_values, find_dotenv
 
 __app_name__ = "Anki Deck Generator"
 __version__ = "0.1.0"
@@ -13,10 +12,7 @@ __version__ = "0.1.0"
     FETCH_ERROR,
 ) = range(6)
 
-base_dir = os.path.dirname(os.path.abspath(__file__))
-env_path = os.path.join(base_dir, ".env")
-
-ENVS = {**dotenv_values(env_path)}
+ENVS = {**dotenv_values(find_dotenv())}
 
 ERRORS = {
     WORD_EXISTS_ERROR: "CONFLICT_ERROR: word already exists",
