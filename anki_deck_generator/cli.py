@@ -136,9 +136,12 @@ def generate_anki_deck(
     exists = data is not None and data.get("status", None) == "created"
 
     if exists and data.get("result", None):
-        meaning = data["result"]["meaning"]
-        example = data["result"]["example"]
-        ipa = data["result"]["ipa"]
+        if not meaning:
+            meaning = data["result"]["meaning"]
+        if not example:
+            example = data["result"]["example"]
+        if not ipa:
+            ipa = data["result"]["ipa"]
 
     if not all([meaning, example, ipa]):
         status, dict_data = generator.dictionary(word)
@@ -155,13 +158,13 @@ def generate_anki_deck(
         if not ipa:
             ipa = dict_data["ipa"]
 
-        data = database.write(
-            word,
-            {
-                **(data if data else {}),
-                "result": {"meaning": meaning, "example": example, "ipa": ipa},
-            },
-        )
+    data = database.write(
+        word,
+        {
+            **(data if data else {}),
+            "result": {"meaning": meaning, "example": example, "ipa": ipa},
+        },
+    )
 
     dict_text = f"[bold green]Word:[/bold green] {word}\n"
     dict_text += f"[bold cyan]Meaning:[/bold cyan] {meaning}\n"
