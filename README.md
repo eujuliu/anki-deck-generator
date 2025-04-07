@@ -91,7 +91,7 @@ If you'd like to contribute to this project, please follow these steps:
  - [ ] Add a Rich progress bar to display what is happening behind the scenes.
 
 ## Motivation
-In 2025, I set a goal to improve my English to secure a job earning in dollars, euros, or any other currency stronger than the Brazilian real. To achieve this, I started a routine of studying for 2 hours every day, divided as follows:
+In 2025, I set a goal to improve my English. To achieve this, I started a routine of studying for 2 hours every day, divided as follows:
 
 - Reading: 30 minutes.
 - Listening: 30 minutes.
